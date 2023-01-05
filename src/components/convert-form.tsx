@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Card,
   Box,
   Typography,
-  Grid,
   IconButton,
   OutlinedInput,
   InputAdornment,
@@ -12,51 +11,41 @@ import {
   CircularProgress,
 } from '@material-ui/core';
 import { ArrowForward } from '@material-ui/icons';
-import {
-  coinConvert,
-  getNativeCoinBalance,
-  onAccountAvailable,
-  onAccountChange,
-} from '@stakeordie/griptape.js';
 
 import NumberFormat from './number-format';
+import { useAccount } from '../context/account-provider';
 
 const ConvertForm = () => {
-  const [scrtBalance, setScrtBalance] = useState('0');
-  const [sScrtBalance, setSScrtBalance] = useState('0');
+  const {
+    nativeBalance,
+    wrappedBalance,
+    viewingKey,
+    isProcessing,
+    deposit,
+    redeem,
+    createViewingKey,
+  } = useAccount();
   const [toWrap, setToWrap] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [amount, setAmount] = useState();
+  const [amount, setAmount] = useState(0);
 
-  useEffect(() => {
-    const removeOnAccountChange = onAccountAvailable(() => {
-      getBalance();
-    });
+  const handleInput = (e: any) => {
+    setAmount(Number(e.target.value));
+  };
 
-    return () => {
-      removeOnAccountChange();
-    };
-  }, []);
+  const handleConvert = useCallback(async () => {
+    if (amount === 0) return;
 
-  const handleInput = useCallback(
-    (e: any) => {
-      const value = Number(e.target.value);
-      if (!Number.isNaN(value)) {
-        setAmount(e.target.value);
+    try {
+      if (toWrap) {
+        await deposit(amount);
+      } else {
+        await redeem(amount);
       }
-    },
-    [amount]
-  );
-
-  const handleConvert = useCallback(() => {
-    setIsProcessing(true);
-  }, []);
-
-  async function getBalance() {
-    let nativeBalance = await getNativeCoinBalance();
-    nativeBalance = coinConvert(nativeBalance, 6, 'human');
-    setScrtBalance(nativeBalance);
-  }
+      setAmount(0);
+    } catch (e) {
+      console.log(e);
+    }
+  }, [amount, toWrap]);
 
   return (
     <div
@@ -81,11 +70,57 @@ const ConvertForm = () => {
             flexDirection: toWrap ? 'row' : 'row-reverse',
           }}
         >
-          <Typography variant="h5">SCRT {`(${scrtBalance})`}</Typography>
+          <Typography variant="h5">SCRT {`(${nativeBalance})`}</Typography>
           <IconButton aria-label="switch" onClick={() => setToWrap(!toWrap)}>
             <ArrowForward />
           </IconButton>
-          <Typography variant="h5">sSCRT {`(${sScrtBalance})`}</Typography>
+          <Typography variant="h5">sSCRT {`(${wrappedBalance})`}</Typography>
+        </Box>
+        <Box
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            padding: '0 24px',
+          }}
+        >
+          {viewingKey ? (
+            <Typography>
+              {`Your viewing key is ${viewingKey.substring(
+                0,
+                15
+              )}...${viewingKey.substring(viewingKey.length - 4)}`}
+            </Typography>
+          ) : (
+            <>
+              <Typography style={{ marginRight: 10 }}>
+                You do not have viewing key.
+              </Typography>
+              <Box style={{ position: 'relative' }}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  color="primary"
+                  disabled={isProcessing}
+                  onClick={createViewingKey}
+                >
+                  Create
+                </Button>
+                {isProcessing && (
+                  <CircularProgress
+                    size={20}
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      marginTop: -10,
+                      marginLeft: -10,
+                    }}
+                  />
+                )}
+              </Box>
+            </>
+          )}
         </Box>
         <FormControl fullWidth variant="outlined" style={{ padding: 24 }}>
           <OutlinedInput

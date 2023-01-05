@@ -1,28 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { AppBar, Toolbar, Typography } from '@material-ui/core';
-import {
-  bootstrap,
-  getAddress,
-  onAccountAvailable,
-  shutdown,
-} from '@stakeordie/griptape.js';
+import { bootstrap, shutdown } from '@stakeordie/griptape.js';
 
 import ConnectButton from './connect-button';
+import { useAccount } from '../context/account-provider';
 
 const Header = () => {
-  const [address, setAddress] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
-
-  useEffect(() => {
-    const removeOnAccountAvailable = onAccountAvailable(() => {
-      setAddress(getAddress() || '');
-      setIsConnected(true);
-    });
-
-    return () => {
-      removeOnAccountAvailable();
-    };
-  }, []);
+  const { address, isConnected } = useAccount();
 
   return (
     <AppBar style={{ backgroundColor: 'transparent' }}>
